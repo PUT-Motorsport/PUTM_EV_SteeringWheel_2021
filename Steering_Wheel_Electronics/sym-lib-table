@@ -1,0 +1,5 @@
+(sym_lib_table
+  (lib (name SR17A1815F89N)(type Legacy)(uri "C:/Users/Mariusz/Desktop/PUT Motorsport/Biblioteki/SR17A1815F89N/SR17A1815F89N.lib")(options "")(descr ""))
+  (lib (name Kierownica-rescue)(type Legacy)(uri ${KIPRJMOD}/Kierownica-rescue.lib)(options "")(descr ""))
+  (lib (name 2021-04-27_16-29-22)(type Legacy)(uri "C:/Users/Mariusz/Desktop/PUT Motorsport/Biblioteki/STM32L4/2021-04-27_16-29-22.lib")(options "")(descr ""))
+)
