@@ -22,6 +22,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "common.h"
 
 /* USER CODE END Includes */
 
@@ -53,11 +54,13 @@ CAN_FilterTypeDef sFilterConfig;
 
 uint8_t sendCanFrame;
 
-uint16_t analog1_raw[100];
-uint16_t analog2_raw[100];
-uint16_t analog3_raw[100];
-
-uint8_t buttonsStates;
+uint16_t analogRaw[300];
+uint8_t analogSwitch1;
+uint8_t analogSwitch2;
+uint8_t analogSwitch3;
+uint8_t buttonsState1;
+uint8_t buttonsState2;
+uint8_t txCanData[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 
 /* USER CODE END PV */
 
@@ -75,7 +78,9 @@ static void MX_CAN1_Init(void);
 static void MX_TIM1_Init(void);
 
 static void MX_TIM3_Init(void);
+
 /* USER CODE BEGIN PFP */
+void myCANInit(void);
 
 /* USER CODE END PFP */
 
@@ -118,11 +123,40 @@ int main(void) {
     MX_TIM3_Init();
     /* USER CODE BEGIN 2 */
 
+    HAL_ADC_Start_DMA(&hadc1, (uint32_t *) analogRaw, 300);
+    HAL_TIM_Base_Start_IT(&htim1);
+    HAL_TIM_Base_Start(&htim3);
+
+    CAN_TxHeaderTypeDef canTxHeaderTypeDef;
+    canTxHeaderTypeDef.StdId = STEERING_WHEEL_ID;
+    canTxHeaderTypeDef.RTR = CAN_RTR_DATA;
+    canTxHeaderTypeDef.IDE = CAN_ID_STD;
+    canTxHeaderTypeDef.DLC = STEERING_WHEEL_DLC;
+    canTxHeaderTypeDef.TransmitGlobalTime = DISABLE;
+    uint32_t txMailBox = 0;
+
+    myCANInit();
     /* USER CODE END 2 */
 
     /* Infinite loop */
     /* USER CODE BEGIN WHILE */
     while (1) {
+        if (sendCanFrame){
+            prepareAnalogSwitchData();
+            txCanData[0] = analogSwitch1;
+            txCanData[1] = analogSwitch2;
+            txCanData[2] = analogSwitch3;
+            txCanData[3] = (buttonsState1 < BUTTON_OFFSET_1) | (buttonsState2 < BUTTON_OFFSET_2);
+
+            HAL_StatusTypeDef status = HAL_CAN_AddTxMessage(&hcan1, &canTxHeaderTypeDef, txCanData, &txMailBox);
+            if (status != HAL_OK){
+                Error_Handler();
+            }
+
+            sendCanFrame = 0;
+            buttonsState1 = 0;
+            buttonsState2 = 0;
+        }
         /* USER CODE END WHILE */
 
         /* USER CODE BEGIN 3 */
@@ -402,9 +436,40 @@ static void MX_GPIO_Init(void) {
     GPIO_InitStruct.Pull = GPIO_PULLUP;
     HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
+    /* EXTI interrupt init*/
+    HAL_NVIC_SetPriority(EXTI0_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(EXTI0_IRQn);
+
+    HAL_NVIC_SetPriority(EXTI1_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(EXTI1_IRQn);
+
 }
 
 /* USER CODE BEGIN 4 */
+void myCANInit(void) {
+    sFilterConfig.FilterBank = 0;
+    sFilterConfig.FilterMode = CAN_FILTERMODE_IDMASK;
+    sFilterConfig.FilterScale = CAN_FILTERSCALE_32BIT;
+    sFilterConfig.FilterIdHigh = 0x0000;
+    sFilterConfig.FilterIdLow = 0x0000;
+    sFilterConfig.FilterMaskIdHigh = 0x0000;
+    sFilterConfig.FilterMaskIdLow = 0x0000;
+    sFilterConfig.FilterFIFOAssignment = CAN_RX_FIFO0;
+    sFilterConfig.FilterActivation = ENABLE;
+    sFilterConfig.SlaveStartFilterBank = 14;
+
+    if (HAL_CAN_ConfigFilter(&hcan1, &sFilterConfig) != HAL_OK) {
+        Error_Handler();
+    }
+
+    if (HAL_CAN_Start(&hcan1) != HAL_OK) {
+        Error_Handler();
+    }
+
+    if (HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_TX_MAILBOX_EMPTY) != HAL_OK) {
+        Error_Handler();
+    }
+}
 
 /* USER CODE END 4 */
 
