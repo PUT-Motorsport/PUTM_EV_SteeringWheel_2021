@@ -1,0 +1,9 @@
+EESchema-DOCLIB  Version 2.0
+#
+$CMP SR17A1815F89N
+D Switch: rotary; Pos: 8; 0.3A/16VDC; Poles number: 1; 30; -2070C
+K
+F https://www.tme.eu/Document/b22debaddaf95bc12514d6d76ea08372/SR17A1815F89N_DRAWING.pdf
+$ENDCMP
+#
+#End Doc Library
